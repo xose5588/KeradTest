@@ -52,12 +52,10 @@ public class MainActivity extends Activity {
         tryAgainButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ArrayList<Tweet> tweets;
-
                 SimpleDateFormat format1 = new SimpleDateFormat("HH:mm");
                 String formatted = format1.format(Calendar.getInstance().getTime());
 
-                searchTweets("\"It's " + formatted + " and\"");
+                searchTweets(getResources().getString(R.string.string_its, formatted));
             }
         });
 
@@ -73,7 +71,7 @@ public class MainActivity extends Activity {
                 SimpleDateFormat format1 = new SimpleDateFormat("HH:mm");
                 String formatted = format1.format(Calendar.getInstance().getTime());
 
-                searchTweets("\"It's " + formatted + " and\"");
+                searchTweets(getResources().getString(R.string.string_its, formatted));
             }
 
             @Override

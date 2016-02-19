@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">KeradTest</string>
+    <string name="string_its">"It's %s and"</string>
+    <string name="string_it_is">"It is %s and"</string>
 </resources>
