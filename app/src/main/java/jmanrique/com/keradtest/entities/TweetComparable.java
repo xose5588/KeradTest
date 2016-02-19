@@ -1,4 +1,4 @@
-package jmanrique.com.keradtest;
+package jmanrique.com.keradtest.entities;
 
 /**
  * Created by Jose on 19/02/2016.
@@ -22,7 +22,7 @@ public class TweetComparable extends Tweet {
         super(t.coordinates, t.createdAt, t.currentUserRetweet, t.entities, t.extendedEtities, t.favoriteCount, t.favorited, t.filterLevel, t.id, t.idStr, t.inReplyToScreenName, t.inReplyToStatusId, t.inReplyToStatusIdStr, t.inReplyToUserId, t.inReplyToUserIdStr, t.lang, t.place, t.possiblySensitive, t.scopes, t.retweetCount, t.retweeted, t.retweetedStatus, t.source, t.text, t.truncated, t.user, t.withheldCopyright, t.withheldInCountries, t.withheldScope);
     }
 
-    static Comparator<TweetComparable> sortByRetweetCount() {
+    public static Comparator<TweetComparable> sortByRetweetCount() {
         return new Comparator<TweetComparable>() {
             @TargetApi(Build.VERSION_CODES.KITKAT)
             @Override
@@ -32,7 +32,7 @@ public class TweetComparable extends Tweet {
         };
     }
 
-    static Comparator<TweetComparable> sortByNewer() {
+    public static Comparator<TweetComparable> sortByNewer() {
         return new Comparator<TweetComparable>() {
             @Override
             public int compare(TweetComparable one, TweetComparable two) {

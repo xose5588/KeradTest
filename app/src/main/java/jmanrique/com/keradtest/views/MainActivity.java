@@ -1,4 +1,4 @@
-package jmanrique.com.keradtest;
+package jmanrique.com.keradtest.views;
 
 import android.app.Activity;
 import android.content.Context;
@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
@@ -28,9 +29,13 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 
+import jmanrique.com.keradtest.R;
+import jmanrique.com.keradtest.entities.TweetComparable;
+
 public class MainActivity extends Activity {
 
     private TwitterLoginButton loginButton;
+    private Button tryAgainButton;
     private RelativeLayout contentLayout;
     private TwitterSession session;
     public Context context;
@@ -43,18 +48,32 @@ public class MainActivity extends Activity {
 
         loginButton = (TwitterLoginButton) findViewById(R.id.twitter_login_button);
         contentLayout = (RelativeLayout)findViewById(R.id.content_view);
+        tryAgainButton = (Button) findViewById(R.id.try_again_btn);
+        tryAgainButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ArrayList<Tweet> tweets;
+
+                SimpleDateFormat format1 = new SimpleDateFormat("HH:mm");
+                String formatted = format1.format(Calendar.getInstance().getTime());
+
+                searchTweets("\"It's " + formatted + " and\"");
+            }
+        });
 
         loginButton.setCallback(new Callback<TwitterSession>() {
             @Override
             public void success(Result<TwitterSession> result) {
                 session = result.data;
                 Toast.makeText(getApplicationContext(), "Logged: " + session.getUserName(), Toast.LENGTH_LONG).show();
-                ArrayList<Tweet> tweets;
+
+                tryAgainButton.setVisibility(View.VISIBLE);
+                loginButton.setVisibility(View.GONE);
 
                 SimpleDateFormat format1 = new SimpleDateFormat("HH:mm");
                 String formatted = format1.format(Calendar.getInstance().getTime());
 
-                tweets = searchTweets("\"It's " + formatted + " and\"");
+                searchTweets("\"It's " + formatted + " and\"");
             }
 
             @Override
@@ -72,7 +91,7 @@ public class MainActivity extends Activity {
         loginButton.onActivityResult(requestCode, resultCode, data);
     }
 
-    private ArrayList<Tweet> searchTweets(String text){
+    private void searchTweets(String text){
 
         TwitterApiClient twitterApiClient = TwitterCore.getInstance().getApiClient();
         SearchService searchService = twitterApiClient.getSearchService();
@@ -80,10 +99,11 @@ public class MainActivity extends Activity {
         searchService.tweets(text, null, null, null, null, null, null, null, null, null, new Callback<Search>() {
             @Override
             public void success(Result<Search> result) {
-                if(result.data.tweets.isEmpty()){
+                if (result.data.tweets.isEmpty()) {
+                    tryAgainButton.setVisibility(View.VISIBLE);
                     Toast.makeText(context, "No tweets found", Toast.LENGTH_SHORT).show();
-                }
-                else {
+                } else {
+                    tryAgainButton.setVisibility(View.GONE);
                     List<TweetComparable> resultSearch = new ArrayList<>();
                     for (Tweet t : result.data.tweets) {
                         resultSearch.add(new TweetComparable(t));
@@ -91,18 +111,8 @@ public class MainActivity extends Activity {
                     Collections.sort(resultSearch, TweetComparable.sortByRetweetCount());
                     Collections.sort(resultSearch, TweetComparable.sortByNewer());
 
-                    TweetUtils.loadTweet(result.data.tweets.get(0).id, new Callback<Tweet>() {
-                        @Override
-                        public void success(Result<Tweet> result) {
-                            TweetView tweetView = new TweetView(MainActivity.this, result.data);
-                            addTweetToView(tweetView);
-                        }
+                    loadTweet(result.data.tweets.get(0).id);
 
-                        @Override
-                        public void failure(TwitterException e) {
-                            Toast.makeText(context, "Failure loading tweet", Toast.LENGTH_SHORT).show();
-                        }
-                    });
                 }
             }
 
@@ -110,12 +120,24 @@ public class MainActivity extends Activity {
                 Toast.makeText(context, "Failure searching tweets", Toast.LENGTH_SHORT).show();
             }
         });
+    }
 
-        return res;
+    private void loadTweet(long tweetId){
+        TweetUtils.loadTweet(tweetId, new Callback<Tweet>() {
+            @Override
+            public void success(Result<Tweet> result) {
+                TweetView tweetView = new TweetView(MainActivity.this, result.data);
+                addTweetToView(tweetView);
+            }
+
+            @Override
+            public void failure(TwitterException e) {
+                Toast.makeText(context, "Failure loading tweet", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void addTweetToView(TweetView tweetView){
-        loginButton.setVisibility(View.GONE);
         contentLayout.addView(tweetView);
     }
 }
