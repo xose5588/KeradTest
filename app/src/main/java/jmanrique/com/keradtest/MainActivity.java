@@ -5,14 +5,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.ViewGroup;
+import android.view.View;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
-import com.twitter.sdk.android.Twitter;
 import com.twitter.sdk.android.core.Callback;
 import com.twitter.sdk.android.core.Result;
 import com.twitter.sdk.android.core.TwitterApiClient;
-import com.twitter.sdk.android.core.TwitterAuthConfig;
 import com.twitter.sdk.android.core.TwitterCore;
 import com.twitter.sdk.android.core.TwitterException;
 import com.twitter.sdk.android.core.TwitterSession;
@@ -23,33 +22,41 @@ import com.twitter.sdk.android.core.services.SearchService;
 import com.twitter.sdk.android.tweetui.TweetUtils;
 import com.twitter.sdk.android.tweetui.TweetView;
 
-import io.fabric.sdk.android.Fabric;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
 
 public class MainActivity extends Activity {
 
-    public static final String TWITTER_KEY = "YcNrAKYevb7vpLdYMI0JAOR3Z";
-    public static final String TWITTER_SECRET = "ZrtXDEzcpg3EuRoyhFGRLcAJpsW8S5p883RQBoKfM2QkQxZcUC";
-    private static final long tweetId = 631879971628183552L;
     private TwitterLoginButton loginButton;
+    private RelativeLayout contentLayout;
     private TwitterSession session;
     public Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        TwitterAuthConfig authConfig = new TwitterAuthConfig(TWITTER_KEY, TWITTER_SECRET);
-        Fabric.with(this, new Twitter(authConfig));
         setContentView(R.layout.activity_main);
         context = getApplicationContext();
 
         loginButton = (TwitterLoginButton) findViewById(R.id.twitter_login_button);
+        contentLayout = (RelativeLayout)findViewById(R.id.content_view);
+
         loginButton.setCallback(new Callback<TwitterSession>() {
             @Override
             public void success(Result<TwitterSession> result) {
                 session = result.data;
                 Toast.makeText(getApplicationContext(), "Logged: " + session.getUserName(), Toast.LENGTH_LONG).show();
-                loadTweet(tweetId);
+                ArrayList<Tweet> tweets;
+
+                SimpleDateFormat format1 = new SimpleDateFormat("HH:mm");
+                String formatted = format1.format(Calendar.getInstance().getTime());
+
+                tweets = searchTweets("\"It's " + formatted + " and\"");
             }
+
             @Override
             public void failure(TwitterException exception) {
                 Log.d("TwitterKit", "Login with Twitter failure", exception);
@@ -65,56 +72,50 @@ public class MainActivity extends Activity {
         loginButton.onActivityResult(requestCode, resultCode, data);
     }
 
-    private void loadTweet(long tweetId){
-        TweetUtils.loadTweet(tweetId, new Callback<Tweet>() {
+    private ArrayList<Tweet> searchTweets(String text){
+
+        TwitterApiClient twitterApiClient = TwitterCore.getInstance().getApiClient();
+        SearchService searchService = twitterApiClient.getSearchService();
+        final ArrayList<Tweet> res = new ArrayList<>();
+        searchService.tweets(text, null, null, null, null, null, null, null, null, null, new Callback<Search>() {
             @Override
-            public void success(Result<Tweet> result) {
-
-
-                TwitterApiClient twitterApiClient = TwitterCore.getInstance().getApiClient();
-                // Can also use Twitter directly: Twitter.getApiClient()
-/*                StatusesService statusesService = twitterApiClient.getStatusesService();
-                statusesService.show(524971209851543553L, null, null, null, new Callback<Tweet>() {
-                    @Override
-                    public void success(Result<Tweet> result) {
-                        Log.d("dfdas", "afads");
-                        //Do something with result, which provides a Tweet inside of result.data
+            public void success(Result<Search> result) {
+                if(result.data.tweets.isEmpty()){
+                    Toast.makeText(context, "No tweets found", Toast.LENGTH_SHORT).show();
+                }
+                else {
+                    List<TweetComparable> resultSearch = new ArrayList<>();
+                    for (Tweet t : result.data.tweets) {
+                        resultSearch.add(new TweetComparable(t));
                     }
+                    Collections.sort(resultSearch, TweetComparable.sortByRetweetCount());
+                    Collections.sort(resultSearch, TweetComparable.sortByNewer());
 
-                    public void failure(TwitterException exception) {
-                        Log.d("dfdas", "afads");
-                        //Do something on failure
-                    }
-                });
-*/
-                SearchService searchService = twitterApiClient.getSearchService();
-                searchService.tweets("It's 10:18 and", null, null, null, null, 10, null, null, null, null, new Callback<Search>() {
-                    @Override
-                    public void success(Result<Search> result) {
-                        Log.d("dfdas", "afads");
-                        //Do something with result, which provides a Tweet inside of result.data
-                    }
+                    TweetUtils.loadTweet(result.data.tweets.get(0).id, new Callback<Tweet>() {
+                        @Override
+                        public void success(Result<Tweet> result) {
+                            TweetView tweetView = new TweetView(MainActivity.this, result.data);
+                            addTweetToView(tweetView);
+                        }
 
-                    public void failure(TwitterException exception) {
-                        Log.d("dfdas", "afads");
-                        //Do something on failure
-                    }
-                });
-
-
-//                TweetView tweetView = new TweetView(MainActivity.this, result.data);
-//                addTweetToView(tweetView);
+                        @Override
+                        public void failure(TwitterException e) {
+                            Toast.makeText(context, "Failure loading tweet", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
             }
 
-            @Override
             public void failure(TwitterException exception) {
-                Log.d("TwitterKit", "Load Tweet failure", exception);
+                Toast.makeText(context, "Failure searching tweets", Toast.LENGTH_SHORT).show();
             }
         });
+
+        return res;
     }
 
     private void addTweetToView(TweetView tweetView){
-        final ViewGroup parentView = (ViewGroup) getWindow().getDecorView().getRootView();
-        parentView.addView(tweetView);
+        loginButton.setVisibility(View.GONE);
+        contentLayout.addView(tweetView);
     }
 }

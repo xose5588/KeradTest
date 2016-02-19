@@ -3,6 +3,7 @@
     package="jmanrique.com.keradtest">
 
     <application
+        android:name=".MyApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -20,5 +21,4 @@
             android:value="9409f6d9cd12b3d95568759064128c4bd269d1f2" />
     </application>
 
-    <uses-permission android:name="android.permission.INTERNET" />
 </manifest>
